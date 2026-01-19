@@ -1,0 +1,36 @@
+name: Full-Stack Real Build Failure
+on: [push]
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Attempt Backend Build
+        run: mvn -f backend/pom.xml compile
+
+      - name: Attempt Frontend Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Alert on Failure
+        if: failure()
+        env:
+          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{"text": "🚨 REAL PROJECT FAILURE: The Java or Angular build crashed. Check GitHub Actions logs immediately!"}' "$TEAMS_URL"
