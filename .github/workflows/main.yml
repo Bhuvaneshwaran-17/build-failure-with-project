@@ -1,36 +1,38 @@
-name: Full-Stack Real Build Failure
+name: Full-Stack Real Project Pipeline
 on: [push]
 
 jobs:
-  Build:
+  Build_and_Notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Java
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java Environment
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          
-      - name: Setup Node
+
+      - name: Setup Node Environment
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Attempt Backend Build
+      - name: Run Backend Maven Build
+        # This will fail because of the missing semicolon in App.java
         run: mvn -f backend/pom.xml compile
 
-      - name: Attempt Frontend Build
+      - name: Run Frontend Angular Build
+        # This will fail because of the Type Mismatch in app.ts
         run: |
           cd frontend
           npm install
           npm run build
 
-      - name: Alert on Failure
+      - name: Alert Teams on Failure
         if: failure()
         env:
           TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
         run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{"text": "🚨 REAL PROJECT FAILURE: The Java or Angular build crashed. Check GitHub Actions logs immediately!"}' "$TEAMS_URL"
+          curl -H 'Content-Type: application/json' -d '{ "type": "message", "attachments": [ { "contentType": "application/vnd.microsoft.card.adaptive", "content": { "type": "AdaptiveCard", "body": [ { "type": "TextBlock", "text": "🚨 CI/CD ALERT: Build Failed", "weight": "Bolder", "size": "Large", "color": "Attention" }, { "type": "TextBlock", "text": "The Full-Stack pipeline has encountered a real compilation error in the Backend or Frontend.", "wrap": true } ], "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "version": "1.4" } } ] }' "$TEAMS_URL"
