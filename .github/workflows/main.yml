@@ -18,7 +18,7 @@ jobs:
 
       - name: Notify Backend Failure
         if: failure()
-        uses: YOUR_GITHUB_USERNAME/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+        uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
         with:
           component_name: "BACKEND"
           status: "FAILURE"
