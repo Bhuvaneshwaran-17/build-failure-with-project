@@ -14,15 +14,16 @@ jobs:
           distribution: 'temurin'
 
       - name: Build Backend
-        # Logic: This fails if the Java code is syntactically incorrect.
         run: mvn -f backend/pom.xml compile
 
       - name: Notify Backend Failure
         if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' -d '{ "type": "message", "attachments": [ { "contentType": "application/vnd.microsoft.card.adaptive", "content": { "type": "AdaptiveCard", "body": [ { "type": "TextBlock", "text": "❌ BACKEND BUILD FAILURE", "weight": "Bolder", "size": "Large", "color": "Attention" }, { "type": "TextBlock", "text": "The Spring Boot compilation has failed. Please check the Maven logs for syntax errors.", "wrap": true } ], "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "version": "1.4" } } ] }' "$TEAMS_URL"
+        uses: YOUR_GITHUB_USERNAME/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+        with:
+          component_name: "BACKEND"
+          status: "FAILURE"
+        secrets:
+          WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
   # JOB 2: FRONTEND COMPILATION
   Frontend-Build:
@@ -35,7 +36,6 @@ jobs:
           node-version: '20'
 
       - name: Build Frontend
-        # Logic: This fails if the TypeScript code violates type safety.
         run: |
           cd frontend
           npm install
@@ -43,19 +43,23 @@ jobs:
 
       - name: Notify Frontend Failure
         if: failure()
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' -d '{ "type": "message", "attachments": [ { "contentType": "application/vnd.microsoft.card.adaptive", "content": { "type": "AdaptiveCard", "body": [ { "type": "TextBlock", "text": "❌ FRONTEND BUILD FAILURE", "weight": "Bolder", "size": "Large", "color": "Attention" }, { "type": "TextBlock", "text": "The Angular build has failed. Please check the NPM/TSC logs for type mismatches.", "wrap": true } ], "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "version": "1.4" } } ] }' "$TEAMS_URL"
+        uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+        with:
+          component_name: "FRONTEND"
+          status: "FAILURE"
+        secrets:
+          WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
   # JOB 3: SUMMARY SUCCESS
   Success-Notification:
     runs-on: ubuntu-latest
-    needs: [Backend-Build, Frontend-Build] # Waits for both components to complete.
-    if: success() # Only triggers if BOTH jobs above are Green.
+    needs: [Backend-Build, Frontend-Build]
+    if: success()
     steps:
       - name: Notify Overall Success
-        env:
-          TEAMS_URL: ${{ secrets.TESTING_WEBHOOK }}
-        run: |
-          curl -H 'Content-Type: application/json' -d '{ "type": "message", "attachments": [ { "contentType": "application/vnd.microsoft.card.adaptive", "content": { "type": "AdaptiveCard", "body": [ { "type": "TextBlock", "text": "✅ FULL-STACK BUILD SUCCESS", "weight": "Bolder", "size": "Large", "color": "Good" }, { "type": "TextBlock", "text": "All components (Spring Boot & Angular) have passed the build checks successfully.", "wrap": true } ], "$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "version": "1.4" } } ] }' "$TEAMS_URL"
+        uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+        with:
+          component_name: "FULL-STACK"
+          status: "SUCCESS"
+        secrets:
+          WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
