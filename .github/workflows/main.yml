@@ -2,7 +2,6 @@ name: Full-Stack Component Pipeline
 on: [push]
 
 jobs:
-  # JOB 1: BACKEND COMPILATION
   Backend-Build:
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +24,6 @@ jobs:
         secrets:
           WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  # JOB 2: FRONTEND COMPILATION
   Frontend-Build:
     runs-on: ubuntu-latest
     steps:
@@ -50,7 +48,6 @@ jobs:
         secrets:
           WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  # JOB 3: SUMMARY SUCCESS
   Success-Notification:
     runs-on: ubuntu-latest
     needs: [Backend-Build, Frontend-Build]
