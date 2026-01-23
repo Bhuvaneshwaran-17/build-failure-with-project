@@ -48,3 +48,4 @@ def sendTeamsNotification(String status, String color, String icon) {
     curl -f -H "Content-Type: application/json" -d "{\\"type\\": \\"AdaptiveCard\\", \\"body\\": [{\\"type\\": \\"TextBlock\\", \\"text\\": \\"${icon} Jenkins Build ${status}\\", \\"weight\\": \\"Bolder\\", \\"size\\": \\"Large\\", \\"color\\": \\"${color}\\"}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Project: ${env.JOB_NAME}\\", \\"wrap\\": true}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Build: #${env.BUILD_NUMBER}\\", \\"wrap\\": true}], \\"actions\\": [{\\"type\\": \\"Action.OpenUrl\\", \\"title\\": \\"View Build\\", \\"url\\": \\"${env.BUILD_URL}\\"}], \\"\$schema\\": \\"http://adaptivecards.io/schemas/adaptive-card.json\\", \\"version\\": \\"1.2\\"}" %TEAMS_WEBHOOK%
     """
 }
+//changed
