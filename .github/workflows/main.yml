@@ -2,49 +2,22 @@ name: Full-Stack Component Pipeline
 on: [push]
 
 jobs:
+  # This job now just "orders" a build from your central brain
   Backend-Build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-      - name: Build Backend
-        run: mvn -f backend/pom.xml compile
-
-  Notify-Backend-Failure:
-    needs: Backend-Build
-    if: failure()
-    uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+    uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/java-build-template.yml@main
     with:
-      component_name: "BACKEND"
-      status: "FAILURE"
+      project_name: "E-Commerce-Backend"
+      java-version: "17"           # Optional: defaults to 17
+      pom_path: "backend/pom.xml"
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
+  # You still need to create the Node template for this to work
   Frontend-Build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Build Frontend
-        run: |
-          cd frontend
-          npm install
-          npm run build
-
-  Notify-Frontend-Failure:
-    needs: Frontend-Build
-    if: failure()
-    uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
+    uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/node-build-template.yml@main
     with:
-      component_name: "FRONTEND"
-      status: "FAILURE"
+      project_name: "E-Commerce-Frontend"
+      working_directory: "frontend"
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
@@ -53,6 +26,7 @@ jobs:
     if: success()
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
     with:
+      project_name: "E-Commerce"
       component_name: "FULL-STACK"
       status: "SUCCESS"
     secrets:
