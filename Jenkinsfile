@@ -1,51 +1,50 @@
 pipeline {
     agent any
     environment {
-        // 'jenkins-teams-webhook' must match the ID you gave in Jenkins Credentials
+        // Ensure this ID matches what you saved in Jenkins Credentials
         TEAMS_WEBHOOK = credentials('jenkins-teams-webhook')
     }
     stages {
-        stage('Checkout') {
+        stage('Build Backend') {
             steps {
-                checkout scm
+                dir('backend') {
+                    // Using 'bat' because you are on Windows
+                    bat 'echo Building Backend... && exit 0' 
+                }
             }
         }
-        stage('Build') {
+        stage('Build Frontend') {
             steps {
-                // Change this to your actual build command (mvn, npm, etc.)
-                sh 'echo "Building project..." && exit 0' 
+                dir('frontend') {
+                    bat 'echo Building Frontend... && exit 0'
+                }
+            }
+        }
+        stage('Simulate Failure') {
+            steps {
+                // This forces the failure so we can test the notification
+                bat 'echo Inducing Failure... && exit 1'
             }
         }
     }
     post {
-        success {
-            script {
-                sendTeamsNotification("SUCCESS", "Good", "✅")
-            }
-        }
         failure {
             script {
                 sendTeamsNotification("FAILURE", "Attention", "❌")
             }
         }
+        success {
+            script {
+                sendTeamsNotification("SUCCESS", "Good", "✅")
+            }
+        }
     }
 }
 
-// Helper function to keep the pipeline clean
 def sendTeamsNotification(String status, String color, String icon) {
-    sh """
-    curl -f -H 'Content-Type: application/json' -d '{
-        "type": "AdaptiveCard",
-        "body": [
-            { "type": "TextBlock", "text": "${icon} Jenkins Build ${status}", "weight": "Bolder", "size": "Large", "color": "${color}" },
-            { "type": "TextBlock", "text": "Project: ${env.JOB_NAME}", "wrap": true },
-            { "type": "TextBlock", "text": "Build: #${env.BUILD_NUMBER}", "wrap": true }
-        ],
-        "actions": [
-            { "type": "Action.OpenUrl", "title": "View Build", "url": "${env.BUILD_URL}" }
-        ],
-        "\$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.2"
-    }' \${TEAMS_WEBHOOK}
+    // Windows requires double quotes for JSON and escaped double quotes for internal strings
+    // We use %TEAMS_WEBHOOK% because 'bat' uses Windows CMD syntax
+    bat """
+    curl -f -H "Content-Type: application/json" -d "{\\"type\\": \\"AdaptiveCard\\", \\"body\\": [{\\"type\\": \\"TextBlock\\", \\"text\\": \\"${icon} Jenkins Build ${status}\\", \\"weight\\": \\"Bolder\\", \\"size\\": \\"Large\\", \\"color\\": \\"${color}\\"}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Project: ${env.JOB_NAME}\\", \\"wrap\\": true}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Build: #${env.BUILD_NUMBER}\\", \\"wrap\\": true}], \\"actions\\": [{\\"type\\": \\"Action.OpenUrl\\", \\"title\\": \\"View Build\\", \\"url\\": \\"${env.BUILD_URL}\\"}], \\"\$schema\\": \\"http://adaptivecards.io/schemas/adaptive-card.json\\", \\"version\\": \\"1.2\\"}" %TEAMS_WEBHOOK%
     """
 }
