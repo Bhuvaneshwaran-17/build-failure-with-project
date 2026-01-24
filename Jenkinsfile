@@ -1,14 +1,13 @@
 pipeline {
     agent any
     environment {
-        // Ensure this ID matches what you saved in Jenkins Credentials
+        // Ensure this ID matches the one in Jenkins Credentials -> System -> Global credentials
         TEAMS_WEBHOOK = credentials('jenkins-teams-webhook')
     }
     stages {
         stage('Build Backend') {
             steps {
                 dir('backend') {
-                    // Using 'bat' because you are on Windows
                     bat 'echo Building Backend... && exit 0' 
                 }
             }
@@ -22,7 +21,7 @@ pipeline {
         }
         stage('Simulate Failure') {
             steps {
-                // This forces the failure so we can test the notification
+                // This forces the failure to test the notification logic
                 bat 'echo Inducing Failure... && exit 1'
             }
         }
@@ -42,10 +41,9 @@ pipeline {
 }
 
 def sendTeamsNotification(String status, String color, String icon) {
-    // Windows requires double quotes for JSON and escaped double quotes for internal strings
-    // We use %TEAMS_WEBHOOK% because 'bat' uses Windows CMD syntax
+    // We use -k and --ssl-no-revoke to bypass Windows/Corporate SSL checks
+    // We wrap %TEAMS_WEBHOOK% in double quotes to prevent '&' from being treated as a command separator
     bat """
-    curl -f -H "Content-Type: application/json" -d "{\\"type\\": \\"AdaptiveCard\\", \\"body\\": [{\\"type\\": \\"TextBlock\\", \\"text\\": \\"${icon} Jenkins Build ${status}\\", \\"weight\\": \\"Bolder\\", \\"size\\": \\"Large\\", \\"color\\": \\"${color}\\"}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Project: ${env.JOB_NAME}\\", \\"wrap\\": true}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Build: #${env.BUILD_NUMBER}\\", \\"wrap\\": true}], \\"actions\\": [{\\"type\\": \\"Action.OpenUrl\\", \\"title\\": \\"View Build\\", \\"url\\": \\"${env.BUILD_URL}\\"}], \\"\$schema\\": \\"http://adaptivecards.io/schemas/adaptive-card.json\\", \\"version\\": \\"1.2\\"}" %TEAMS_WEBHOOK%
+    curl -k --ssl-no-revoke -f -H "Content-Type: application/json" -d "{\\"type\\": \\"AdaptiveCard\\", \\"body\\": [{\\"type\\": \\"TextBlock\\", \\"text\\": \\"${icon} Jenkins Build ${status}\\", \\"weight\\": \\"Bolder\\", \\"size\\": \\"Large\\", \\"color\\": \\"${color}\\"}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Project: ${env.JOB_NAME}\\", \\"wrap\\": true}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Build: #${env.BUILD_NUMBER}\\", \\"wrap\\": true}], \\"actions\\": [{\\"type\\": \\"Action.OpenUrl\\", \\"title\\": \\"View Build\\", \\"url\\": \\"${env.BUILD_URL}\\"}], \\"\$schema\\": \\"http://adaptivecards.io/schemas/adaptive-card.json\\", \\"version\\": \\"1.2\\"}" "%TEAMS_WEBHOOK%"
     """
 }
-//changed
