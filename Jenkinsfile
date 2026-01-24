@@ -1,28 +1,36 @@
 pipeline {
     agent any
+    tools {
+        // These names must match Manage Jenkins -> Tools EXACTLY
+        maven 'Maven_3.9' 
+        nodejs 'Node_20'
+    }
     environment {
-        // Ensure this ID matches the one in Jenkins Credentials -> System -> Global credentials
         TEAMS_WEBHOOK = credentials('jenkins-teams-webhook')
     }
     stages {
-        stage('Build Backend') {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build Backend (Spring Boot)') {
             steps {
                 dir('backend') {
-                    bat 'echo Building Backend... && exit 0' 
+                    // This will catch your real Java/Spring errors
+                    bat 'mvn clean install -DskipTests'
                 }
             }
         }
-        stage('Build Frontend') {
+        stage('Build Frontend (Angular)') {
             steps {
                 dir('frontend') {
-                    bat 'echo Building Frontend... && exit 0'
+                    // This will catch your real TypeScript/Angular errors
+                    bat '''
+                        npm install
+                        npm run build
+                    '''
                 }
-            }
-        }
-        stage('Simulate Failure') {
-            steps {
-                // This forces the failure to test the notification logic
-                bat 'echo Inducing Failure... && exit 1'
             }
         }
     }
@@ -41,8 +49,6 @@ pipeline {
 }
 
 def sendTeamsNotification(String status, String color, String icon) {
-    // We use -k and --ssl-no-revoke to bypass Windows/Corporate SSL checks
-    // We wrap %TEAMS_WEBHOOK% in double quotes to prevent '&' from being treated as a command separator
     bat """
     curl -k --ssl-no-revoke -f -H "Content-Type: application/json" -d "{\\"type\\": \\"AdaptiveCard\\", \\"body\\": [{\\"type\\": \\"TextBlock\\", \\"text\\": \\"${icon} Jenkins Build ${status}\\", \\"weight\\": \\"Bolder\\", \\"size\\": \\"Large\\", \\"color\\": \\"${color}\\"}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Project: ${env.JOB_NAME}\\", \\"wrap\\": true}, {\\"type\\": \\"TextBlock\\", \\"text\\": \\"Build: #${env.BUILD_NUMBER}\\", \\"wrap\\": true}], \\"actions\\": [{\\"type\\": \\"Action.OpenUrl\\", \\"title\\": \\"View Build\\", \\"url\\": \\"${env.BUILD_URL}\\"}], \\"\$schema\\": \\"http://adaptivecards.io/schemas/adaptive-card.json\\", \\"version\\": \\"1.2\\"}" "%TEAMS_WEBHOOK%"
     """
