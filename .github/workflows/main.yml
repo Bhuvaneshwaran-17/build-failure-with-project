@@ -2,7 +2,6 @@ name: Full-Stack Component Pipeline
 on: [push]
 
 jobs:
-  # ABP Phase 1: Compile and Package Java (Using your central brain)
   Backend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/java-build-template.yml@main
     with:
@@ -12,7 +11,6 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  # ABP Phase 2 & CPA: Containerize and Verify
   Backend-CPA:
     needs: Backend-Build
     runs-on: ubuntu-latest
@@ -36,7 +34,6 @@ jobs:
         run: |
           docker run -d -p 8080:8080 --name backend-cpa e-commerce-backend:${{ github.sha }}
           sleep 15
-          # Verification: Hitting the Actuator Health endpoint
           curl -f http://localhost:8080/actuator/health || exit 1
           echo "CPA Successful: Backend is operational."
 
@@ -48,7 +45,6 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  # Trigger Notification ONLY if everything passes
   Success-Notification:
     needs: [Backend-CPA, Frontend-Build]
     if: success()

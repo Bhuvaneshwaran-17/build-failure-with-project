@@ -7,7 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  # --- BACKEND ABP & CPA ---
   Backend-Pipeline:
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +34,6 @@ jobs:
           sleep 20
           curl -f http://localhost:8080/actuator/health || (docker logs backend-cpa && exit 1)
 
-  # --- FRONTEND ABP ---
   Frontend-Pipeline:
     runs-on: ubuntu-latest
     steps:
@@ -59,7 +57,6 @@ jobs:
         working-directory: ./frontend
         run: docker build -t e-commerce-frontend:${{ github.sha }} .
 
-  # --- FINAL STATUS & NOTIFICATION ---
   Pipeline-Results:
     needs: [Backend-Pipeline, Frontend-Pipeline]
     if: always()
