@@ -2,17 +2,44 @@ name: Full-Stack Component Pipeline
 on: [push]
 
 jobs:
-  # This job now just "orders" a build from your central brain
+  # ABP Phase 1: Compile and Package Java (Using your central brain)
   Backend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/java-build-template.yml@main
     with:
       project_name: "E-Commerce-Backend"
-      java-version: "17"           # Optional: defaults to 17
+      java-version: "17"
       pom_path: "backend/pom.xml"
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  # You still need to create the Node template for this to work
+  # ABP Phase 2 & CPA: Containerize and Verify
+  Backend-CPA:
+    needs: Backend-Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: ABP: Finalize Docker Image
+        run: |
+          cd backend
+          mvn clean package -DskipTests
+          docker build -t e-commerce-backend:${{ github.sha }} .
+
+      - name: CPA: Acceptance Test
+        run: |
+          docker run -d -p 8080:8080 --name backend-cpa e-commerce-backend:${{ github.sha }}
+          sleep 15
+          # Verification: Hitting the Actuator Health endpoint
+          curl -f http://localhost:8080/actuator/health || exit 1
+          echo "CPA Successful: Backend is operational."
+
   Frontend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/node-build-template.yml@main
     with:
@@ -21,8 +48,9 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
+  # Trigger Notification ONLY if everything passes
   Success-Notification:
-    needs: [Backend-Build, Frontend-Build]
+    needs: [Backend-CPA, Frontend-Build]
     if: success()
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
     with:
