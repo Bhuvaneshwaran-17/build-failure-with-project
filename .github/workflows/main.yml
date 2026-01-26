@@ -2,6 +2,7 @@ name: Full-Stack Component Pipeline
 on: [push]
 
 jobs:
+  # ABP Phase 1: Backend Build using Central Template
   Backend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/java-build-template.yml@main
     with:
@@ -11,6 +12,7 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
+  # ABP Phase 2 & CPA: Backend Containerization and Health Verification
   Backend-CPA:
     needs: Backend-Build
     runs-on: ubuntu-latest
@@ -22,7 +24,6 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'
 
       - name: ABP: Finalize Docker Image
         run: |
@@ -33,10 +34,11 @@ jobs:
       - name: CPA: Acceptance Test
         run: |
           docker run -d -p 8080:8080 --name backend-cpa e-commerce-backend:${{ github.sha }}
-          sleep 15
-          curl -f http://localhost:8080/actuator/health || exit 1
+          sleep 20
+          curl -f http://localhost:8080/actuator/health || (docker logs backend-cpa && exit 1)
           echo "CPA Successful: Backend is operational."
 
+  # ABP Phase 1 & 2: Frontend Build using Central Template
   Frontend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/node-build-template.yml@main
     with:
@@ -45,13 +47,14 @@ jobs:
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
 
-  Success-Notification:
+  # Combined Status & Failure Alert logic
+  Pipeline-Summary:
     needs: [Backend-CPA, Frontend-Build]
-    if: success()
+    if: always()
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/teams-notifier.yml@main
     with:
       project_name: "E-Commerce"
       component_name: "FULL-STACK"
-      status: "SUCCESS"
+      status: ${{ (needs.Backend-CPA.result == 'success' && needs.Frontend-Build.result == 'success') && 'SUCCESS' || 'FAILURE' }}
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
