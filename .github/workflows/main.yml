@@ -6,7 +6,7 @@ jobs:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/java-build-template.yml@main
     with:
       project_name: "E-Commerce-Backend"
-      java-version: "17"
+      java-version: "21"
       pom_path: "backend/pom.xml"
     secrets:
       WEBHOOK_URL: ${{ secrets.TESTING_WEBHOOK }}
