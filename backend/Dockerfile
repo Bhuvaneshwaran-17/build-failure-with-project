@@ -1,5 +1,5 @@
 # Stage 1: Runtime environment
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jdk-jammy
 
 # Set the working directory inside the container
 WORKDIR /app
