@@ -39,6 +39,19 @@ jobs:
           curl -f http://localhost:8080/actuator/health || (docker logs backend-cpa && exit 1)
           echo "CPA Successful: Backend is operational."
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: "ABP: Push Image to Docker Hub"
+        run: |
+          # We tag it with the SHA for versioning and 'latest' for convenience
+          docker tag e-commerce-backend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/e-commerce-backend:latest
+          docker tag e-commerce-backend:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/e-commerce-backend:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/e-commerce-backend --all-tags
+
   Frontend-Build:
     uses: Bhuvaneshwaran-17/central-devops-tooling/.github/workflows/node-build-template.yml@main
     with:
